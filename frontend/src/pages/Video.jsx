@@ -1,10 +1,8 @@
-import React from "react";
-import Sentiment from "../components/sentiment";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import BACKEND_URL from "../commons";
 import { Bars } from "react-loader-spinner";
-import ChatBot from "../components/Chatbot";
+import strict_output from "../utils/gptHelper";
 
 const Video = () => {
   return (
@@ -20,11 +18,22 @@ const VideoDetails = () => {
   const location = window.location.href;
   const id = location.split("/")[4];
   const st_time = location.split("/")[5];
-  console.log(id, st_time);
 
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState("");
   const [transcript, setTranscript] = useState("");
+
+  const apiCall = useCallback(async () => {
+    if (summary === "") return;
+
+    const question = await strict_output(
+      "You are a teacher with knowledge about of all the subjects. You are to generate five easy to medium difficulty questions and answers about the video you just watched.",
+      `You are to generate a quiz about the video you just watched. The quiz should contain five questions and answers. The questions should be easy to medium difficulty. The answers should be related to the video content. the video is about ${transcript}.`,
+      {}
+    );
+    console.log("question", question);
+    return question;
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,13 +41,14 @@ const VideoDetails = () => {
       try {
         const response = await axios.get(url);
         const transcript = await axios.get(`${BACKEND_URL}/transcript/${id}`);
-
         const { data } = response;
         const { data: transcriptData } = transcript;
-        console.log(transcript);
+        // console.log(transcript);
         setSummary(data.summary);
         setTranscript(transcriptData.transcript);
         setLoading(false);
+        // const quiz = await apiCall();
+        // console.log("quiz", quiz);
       } catch (error) {
         console.error("Error fetching video details:", error);
         setSummary("Error fetching video details");
@@ -51,6 +61,7 @@ const VideoDetails = () => {
   return (
     <div className="flex flex-col">
       <div className="px-3 md:px-12 pt-8 h-screen w-full flex items-start justify-center gap-4 md:gap-12 text-white text-start">
+        {/* <button onClick={apiCall}>click</button> */}
         <div className="w-2/3 h-full p-0 m-0">
           <iframe
             src={`https://www.youtube.com/embed/${id}?start=${st_time}`}
@@ -84,7 +95,8 @@ const VideoDetails = () => {
           alt=""
         />
       </div>
-      <dialog id="my_modal_5" className="modal">
+      {transcript}
+      {/* <dialog id="my_modal_5" className="modal">
         <div className="modal-box bg-[#000004] h-2/3 no-scrollbar flex flex-col items-center">
           <form method="dialog" className="ml-1/2">
             <h2 className="mb-6 mt-3 font-bold text-white text-center mx-auto">
@@ -96,7 +108,7 @@ const VideoDetails = () => {
           </form>
           <ChatBot data={summary} />
         </div>
-      </dialog>
+      </dialog> */}
     </div>
   );
 };
