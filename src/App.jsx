@@ -1,11 +1,17 @@
 import "./App.css";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Logo from "./components/Logo";
+import { Bars } from "react-loader-spinner";
 
 function App() {
   const [videoId, setVideoId] = useState("");
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState("");
+  const [comments, setComments] = useState([]);
+  const [neutral, setNeutral] = useState(0);
+  const [happy, setHappy] = useState(0);
+  const [sad, setSad] = useState(0);
 
   useEffect(() => {
     const getVideoId = async () => {
@@ -16,14 +22,28 @@ function App() {
     };
     getVideoId();
   }, []);
-
   const fetchData = async () => {
     const url = `https://0cbzh110-5000.inc1.devtunnels.ms/summary/${videoId}`;
     console.log(url);
     try {
       setLoading(true);
       const response = await axios.get(url);
+      const response2 = await axios.get(
+        `https://0cbzh110-5000.inc1.devtunnels.ms/sentiment/${videoId}`
+      );
       const { data } = response;
+      const { data: data2 } = response2;
+
+      data2.forEach((element) => {
+        if (element.label === "positive") {
+          setHappy((prev) => prev + 1);
+        } else if (element.label === "neutral") {
+          setNeutral((prev) => prev + 1);
+        } else {
+          setSad((prev) => prev + 1);
+        }
+      });
+
       setSummary(data.summary);
       setLoading(false);
       chrome.storage.local.set({
@@ -47,28 +67,60 @@ function App() {
       target: { tabId: tab.id },
       func: () => {
         chrome.storage.local.get(["summary"], (res) => {
-          document.getElementById("secondary").textContent = res.summary;
-          document.getElementById("contents").textContent = "hllo";
+          document.getElementById("secondary").innerHTML = `
+         <div className="column">
+         <h1 className="head"
+         style="
+          font-size: "5rem",
+          font-weight: "bold",
+          color: "#242424",
+          font-size: "4rem",
+    "
+         >Infoscribe.Ai</h1>
+         <p className="para"
+          style="
+          font-size: 1.5rem;
+          color: #000;
+          text-align: start;
+          margin-bottom: 1rem;
+          "
+         >
+         ${res.summary}
+         </p>
+          <div style="height: 400px;">
+          <iframe
+          src='http://localhost:3000/'
+          width="100%"
+          height="90%"
+        ></iframe></div>
+         </div>
+          `;
+          //document.getElementById("contents").textContent = "hllo";
         });
       },
     });
   };
 
   // const id = "1";
-  if (loading) return <h1>Loading...</h1>;
+  if (loading)
+    return (
+      <div className="">
+        <Bars
+          height="30"
+          width="30"
+          color="#FF00FF"
+          className="mx-auto"
+          ariaLabel="bars-loading"
+          wrapperStyle={{}}
+          wrapperClass=""
+          visible={true}
+        />
+      </div>
+    );
 
   return (
-    <>
-      <h1 className="flex flex-col items-center font-bold text-4xl">
-        <img
-          src="https://mir-s3-cdn-cf.behance.net/project_modules/max_1200/3c662b51418913.58ecfcd8b6b18.png"
-          alt="react logo"
-          width="50"
-        />
-        Study Buddy{" "}
-      </h1>
-      {summary && <p>{summary}</p>}
-
+    <div className="flex flex-col items-center">
+      <Logo />
       <button
         onClick={
           () => fetchData()
@@ -76,26 +128,29 @@ function App() {
           //   ? window.open(`http://localhost:5173/video/${videoId}/0`, "_blank")
           //   : alert("Please open a youtube video")
         }
-        className="bg-black mt-4
-      focus:outline-none
-      text-white border-none outline-none"
+        className=" h-12 text-white font-semibold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-lg shadow-lg hover:scale-105 duration-200 hover:drop-shadow-2xl hover:shadow-purple-800 hover:cursor-pointer"
       >
         Get Help With this Video
       </button>
-      <button
-        onClick={
-          () => doSomething()
-          // videoId != ""
-          //   ? window.open(`http://localhost:5173/video/${videoId}/0`, "_blank")
-          //   : alert("Please open a youtube video")
-        }
-        className="bg-black mt-4
-      focus:outline-none
-      text-white border-none outline-none"
-      >
-        storage
-      </button>
-    </>
+
+      <div className="w-full flex flex-wrap items-center justify-center gap-4 mt-8 text-white">
+        <div className="flex gap-2 items-center">
+          {" "}
+          <div className="h-4 w-4 rounded-full bg-green-400"></div>
+          <h3 className="">Positive - {happy}</h3>
+        </div>
+        <div className="flex gap-2 items-center">
+          {" "}
+          <div className="h-4 w-4 rounded-full bg-red-400"></div>
+          <h3 className="">Negative - {sad}</h3>
+        </div>
+        <div className="flex gap-2 items-center">
+          {" "}
+          <div className="h-4 w-4 rounded-full bg-gray-400"></div>
+          <h3 className="">Neutral - {neutral}</h3>
+        </div>
+      </div>
+    </div>
   );
 }
 
